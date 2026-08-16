@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DeepSeek Harness 启动页</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(1200px 700px at 70% -10%, #1d2a4d 0%, #0b1020 55%, #070a14 100%);
+    color: #e6e9f2;
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  .card {
+    width: min(560px, 92vw);
+    padding: 40px 44px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 18px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.45);
+    text-align: center;
+  }
+  .logo { font-size: 44px; margin-bottom: 14px; }
+  h1 { font-size: 24px; font-weight: 650; letter-spacing: 0.3px; }
+  .sub { margin-top: 8px; color: #9aa4bd; font-size: 14px; }
+  .status {
+    margin: 28px 0 8px;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 999px; font-size: 14px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: #f0b429; box-shadow: 0 0 12px #f0b42988; }
+  .dot.up { background: #31c48d; box-shadow: 0 0 12px #31c48d88; }
+  .dot.down { background: #f05252; box-shadow: 0 0 12px #f0525288; }
+  .btn {
+    display: inline-block; margin-top: 22px; padding: 12px 34px;
+    border-radius: 10px; border: none; cursor: pointer;
+    background: #3b82f6; color: #fff; font-size: 15px; font-weight: 600;
+    text-decoration: none; transition: transform 0.08s ease, background 0.15s ease;
+  }
+  .btn:hover { background: #2f6fe0; }
+  .btn:active { transform: scale(0.98); }
+  .btn.ghost { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #cdd5e5; margin-left: 10px; }
+  .hint { margin-top: 26px; font-size: 13px; color: #8b94ab; line-height: 1.9; text-align: left; background: rgba(0,0,0,0.25); border-radius: 10px; padding: 14px 18px; }
+  .hint code { color: #93c5fd; background: rgba(59,130,246,0.12); padding: 2px 7px; border-radius: 6px; font-family: Consolas, monospace; }
+  .copy { margin-left: 6px; padding: 2px 10px; font-size: 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.06); color: #cdd5e5; cursor: pointer; }
+  .footer { margin-top: 26px; font-size: 12px; color: #5b6478; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">🧠</div>
+  <h1>DeepSeek Harness</h1>
+  <div class="sub">本地 AI 工作台启动页 · 功能与终端启动完全一致</div>
+
+  <div class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">检测中…</span></div>
+  <div>
+    <a class="btn" id="enter" href="http://127.0.0.1:3080">进入 Harness</a>
+    <a class="btn ghost" id="startBtn" href="start-harness.bat" style="display:none">一键启动(脚本)</a>
+  </div>
+
+  <div class="hint" id="hint">
+    如果 Harness 未运行:<br>
+    1. 双击工作区的 <code>start-harness.bat</code>(会自动拉起服务并打开网页)<br>
+    2. 或在终端执行:
+    <code id="cmd">npx @deepseek-ai/dsh web</code>
+    <button class="copy" id="copyBtn">复制</button><br>
+    3. 若已配置开机自启,稍等几秒后刷新本页即可
+  </div>
+
+  <div class="footer">本页只做检测与跳转 · 真实服务由本地 DSH 进程提供</div>
+</div>
+
+<script>
+  var URL_TARGET = 'http://127.0.0.1:3080';
+  var up = false;
+  var dot = document.getElementById('dot');
+  var statusText = document.getElementById('statusText');
+  var enter = document.getElementById('enter');
+  var startBtn = document.getElementById('startBtn');
+
+  function setState(isUp) {
+    up = isUp;
+    dot.className = 'dot ' + (isUp ? 'up' : 'down');
+    statusText.textContent = isUp ? 'Harness 运行中' : 'Harness 未运行';
+    startBtn.style.display = isUp ? 'none' : 'inline-block';
+    if (isUp) {
+      enter.style.display = 'inline-block';
+      enter.textContent = '进入 Harness(自动跳转中…)';
+      setTimeout(function () { window.location.href = URL_TARGET; }, 600);
+    } else {
+      enter.style.display = 'inline-block';
+      enter.textContent = '重新检测';
+    }
+  }
+
+  function probe() {
+    var img = new Image();
+    var done = false;
+    function finish(isUp) { if (!done) { done = true; setState(isUp); } }
+    img.onload = function () { finish(true); };
+    img.onerror = function () { finish(true); };   // 拒绝/404 都说明服务在
+    setTimeout(function () { finish(false); }, 2500);
+    img.src = URL_TARGET + '/favicon.ico?_=' + Date.now();
+  }
+
+  enter.addEventListener('click', function (e) {
+    if (!up) { e.preventDefault(); probe(); }
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function () {
+    var text = document.getElementById('cmd').textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+      this.textContent = '已复制';
+    } else {
+      window.prompt('请手动复制:', text);
+    }
+  });
+
+  probe();
+</script>
+</body>
+</html>
